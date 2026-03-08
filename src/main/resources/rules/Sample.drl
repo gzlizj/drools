@@ -1,0 +1,40 @@
+package rules
+
+import com.example.drools.model.Person
+
+rule "Underage"
+    when
+        $p : Person( age < 18 )
+    then
+        System.out.println("Rule Triggered [No Salience] (Underage) : " + $p.getName());
+        $p.setCanDrive(false);
+        $p.setDiscount(0);
+end
+
+// INTERSECTION:
+// A person aged 65+ will match BOTH the "Adult Base Rate" rule and the "Senior Citizen Bonus" rule.
+// We want the absolute assignment (discount = 5) to happen BEFORE the addition (discount = discount + 15).
+// Therefore, the "Adult Base Rate" needs a HIGHER salience than "Senior Citizen Bonus".
+
+rule "Adult Base Rate"
+    // Higher priority (fires first)
+    salience 20 
+    when
+        $p : Person( age >= 18 )
+    then
+        System.out.println("Rule Triggered [Salience 20] (Adult Base Rate) : " + $p.getName() + ". Setting base discount to 5%.");
+        $p.setCanDrive(true);
+        $p.setDiscount(5); 
+end
+
+rule "Senior Citizen Bonus"
+    agenda-group "bonus-group"
+    // Lower priority (fires second, after the base rate is set)
+    salience 10 
+    when
+        // This condition intersects with "age >= 18"
+        $p : Person( age >= 65 )
+    then
+        System.out.println("Rule Triggered [Salience 10] (Senior Bonus)      : " + $p.getName() + ". Adding 15% to existing discount.");
+        $p.setDiscount($p.getDiscount() + 15); 
+end

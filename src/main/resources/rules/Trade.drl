@@ -1,0 +1,27 @@
+package rules
+
+import com.example.drools.model.Trade
+
+declare Trade
+    @role( event )
+end
+
+rule "Trade Price 30% Higher than VWAP"
+    when
+        $t : Trade( $symbol : symbol, $price : price )
+        // Calculate VWAP over the last 10 trades for this symbol
+        Number( $vwap : doubleValue, $vwap > 0 ) from accumulate(
+            $pastTrade : Trade( symbol == $symbol ) over window:length(10),
+            init( double totalValue = 0.0; int totalVolume = 0; ),
+            action( totalValue += ($pastTrade.getPrice() * $pastTrade.getVolume());
+                    totalVolume += $pastTrade.getVolume(); ),
+            reverse( totalValue -= ($pastTrade.getPrice() * $pastTrade.getVolume());
+                     totalVolume -= $pastTrade.getVolume(); ),
+            result( totalVolume == 0 ? 0.0 : totalValue / totalVolume )
+        )
+        // Check if current trade price is > 30% higher than the VWAP of the last 10 trades
+        eval( $price > ($vwap * 1.30) )
+    then
+        System.out.println("ALARM: Trade [" + $symbol + "] price $" + String.format("%.2f", $price) + 
+                           " is >30% higher than VWAP $" + String.format("%.2f", $vwap));
+end
