@@ -1,6 +1,7 @@
 package com.example.drools.model;
 
 public class Person {
+    // the name of the person: first name and last name
     private String name;
     private int age;
     private boolean canDrive;
